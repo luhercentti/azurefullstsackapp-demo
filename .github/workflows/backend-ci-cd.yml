@@ -9,10 +9,10 @@ on:
     paths: [ 'backend/**' ]
 
 env:
-  REGISTRY_NAME: acrtaskapp
+  REGISTRY_NAME: acrlhc
   IMAGE_NAME: api
-  RESOURCE_GROUP: rg-taskapp-prod
-  CONTAINER_APP_NAME: taskapp-api
+  RESOURCE_GROUP: luis.angelo
+  CONTAINER_APP_NAME: lhc-api
 
 jobs:
   build-and-test:

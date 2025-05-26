@@ -12,10 +12,16 @@ provider "azurerm" {
   skip_provider_registration = true
 }
 
-#Resource Group
+# Resource Group
+# resource "azurerm_resource_group" "main" {
+#   name     = var.resource_group_name
+#   location = var.location
+# }
+
+#imported RG
 resource "azurerm_resource_group" "main" {
-  name     = var.resource_group_name
-  location = var.location
+    name     = "luis.angelo"
+    location = "East US"
 }
 
 # Container Registry
@@ -45,6 +51,7 @@ resource "azurerm_container_app_environment" "main" {
 }
 
 # Container App
+# Container App
 resource "azurerm_container_app" "api" {
   name                         = "${var.project_name}-api"
   container_app_environment_id = azurerm_container_app_environment.main.id
@@ -54,7 +61,7 @@ resource "azurerm_container_app" "api" {
   template {
     container {
       name   = "api"
-      image  = "${azurerm_container_registry.acr.login_server}/api:latest"
+      image  = "mcr.microsoft.com/azuredocs/containerapps-helloworld:latest"  # Placeholder image
       cpu    = 0.25
       memory = "0.5Gi"
 
@@ -88,6 +95,13 @@ resource "azurerm_container_app" "api" {
   secret {
     name  = "registry-password"
     value = azurerm_container_registry.acr.admin_password
+  }
+
+  # Ignore image changes since the pipeline will update it
+  lifecycle {
+    ignore_changes = [
+      template[0].container[0].image
+    ]
   }
 }
 
