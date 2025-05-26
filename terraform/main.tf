@@ -18,7 +18,6 @@ resource "azurerm_resource_group" "main" {
   location = var.location
 }
 
-
 # Container Registry
 resource "azurerm_container_registry" "acr" {
   name                = var.acr_name
