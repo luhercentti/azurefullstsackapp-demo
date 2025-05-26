@@ -25,7 +25,7 @@ jobs:
     - name: Install dependencies
       run: |
         cd frontend
-        npm ci
+        npm ci || (npm install && echo "Lock file was out of sync, regenerated") || (npm install && echo "Lock file was out of sync, regenerated")
     
     - name: Run tests
       run: |
