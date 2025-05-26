@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import App from './App';
 
@@ -9,16 +9,21 @@ beforeEach(() => {
   fetch.mockClear();
 });
 
-test('renders task manager title', () => {
+test('renders task manager title', async () => {
   // Mock the initial API call
   fetch.mockResolvedValueOnce({
     ok: true,
     json: async () => []
   });
 
-  render(<App />);
-  const titleElement = screen.getByText(/Task Manager/i);
-  expect(titleElement).toBeInTheDocument();
+  await act(async () => {
+    render(<App />);
+  });
+
+  // Wait for the loading to complete and title to appear
+  await waitFor(() => {
+    expect(screen.getByText(/Task Manager/i)).toBeInTheDocument();
+  });
 });
 
 test('displays loading state initially', () => {
@@ -42,7 +47,9 @@ test('displays empty state when no tasks', async () => {
     json: async () => []
   });
 
-  render(<App />);
+  await act(async () => {
+    render(<App />);
+  });
   
   await waitFor(() => {
     expect(screen.getByText(/No tasks yet/i)).toBeInTheDocument();
@@ -60,7 +67,9 @@ test('displays tasks when loaded', async () => {
     json: async () => mockTasks
   });
 
-  render(<App />);
+  await act(async () => {
+    render(<App />);
+  });
   
   await waitFor(() => {
     expect(screen.getByText('Test task 1')).toBeInTheDocument();
@@ -81,7 +90,9 @@ test('can add new task', async () => {
     json: async () => ({ id: 1, title: 'New task', completed: false })
   });
 
-  render(<App />);
+  await act(async () => {
+    render(<App />);
+  });
   
   await waitFor(() => {
     expect(screen.getByText(/No tasks yet/i)).toBeInTheDocument();
@@ -90,8 +101,10 @@ test('can add new task', async () => {
   const input = screen.getByPlaceholderText(/Add a new task/i);
   const addButton = screen.getByRole('button', { name: /Add/i });
 
-  fireEvent.change(input, { target: { value: 'New task' } });
-  fireEvent.click(addButton);
+  await act(async () => {
+    fireEvent.change(input, { target: { value: 'New task' } });
+    fireEvent.click(addButton);
+  });
 
   await waitFor(() => {
     expect(screen.getByText('New task')).toBeInTheDocument();
@@ -101,7 +114,9 @@ test('can add new task', async () => {
 test('handles API error gracefully', async () => {
   fetch.mockRejectedValueOnce(new Error('API Error'));
 
-  render(<App />);
+  await act(async () => {
+    render(<App />);
+  });
   
   await waitFor(() => {
     expect(screen.getByText(/Failed to load tasks/i)).toBeInTheDocument();
@@ -125,14 +140,19 @@ test('can toggle task completion', async () => {
     json: async () => ({ id: 1, title: 'Test task', completed: true })
   });
 
-  render(<App />);
+  await act(async () => {
+    render(<App />);
+  });
   
   await waitFor(() => {
     expect(screen.getByText('Test task')).toBeInTheDocument();
   });
 
   const toggleButton = document.querySelector('button[class*="rounded-full"]');
-  fireEvent.click(toggleButton);
+  
+  await act(async () => {
+    fireEvent.click(toggleButton);
+  });
 
   await waitFor(() => {
     expect(fetch).toHaveBeenCalledWith(
