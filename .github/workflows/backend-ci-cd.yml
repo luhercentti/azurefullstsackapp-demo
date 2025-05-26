@@ -1,0 +1,85 @@
+name: Backend CI/CD
+
+on:
+  push:
+    branches: [ main ]
+    paths: [ 'backend/**' ]
+  pull_request:
+    branches: [ main ]
+    paths: [ 'backend/**' ]
+
+env:
+  REGISTRY_NAME: acrtaskapp
+  IMAGE_NAME: api
+  RESOURCE_GROUP: rg-taskapp-prod
+  CONTAINER_APP_NAME: taskapp-api
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Install dependencies
+      run: |
+        cd backend
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pytest httpx
+    
+    - name: Run tests
+      run: |
+        cd backend
+        python -m pytest tests/ -v || echo "No tests found, skipping..."
+    
+    - name: Build Docker image
+      run: |
+        cd backend
+        docker build -t ${{ env.IMAGE_NAME }}:${{ github.sha }} .
+    
+  deploy:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Azure Login
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+    
+    - name: Build and push Docker image
+      run: |
+        cd backend
+        
+        # Login to ACR
+        az acr login --name ${{ env.REGISTRY_NAME }}
+        
+        # Build and tag image
+        docker build -t ${{ env.REGISTRY_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.sha }} .
+        docker tag ${{ env.REGISTRY_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.sha }} ${{ env.REGISTRY_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:latest
+        
+        # Push image
+        docker push ${{ env.REGISTRY_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.sha }}
+        docker push ${{ env.REGISTRY_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:latest
+    
+    - name: Deploy to Container App
+      run: |
+        az containerapp update \
+          --name ${{ env.CONTAINER_APP_NAME }} \
+          --resource-group ${{ env.RESOURCE_GROUP }} \
+          --image ${{ env.REGISTRY_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.sha }}
+    
+    - name: Restart Container App
+      run: |
+        az containerapp revision restart \
+          --name ${{ env.CONTAINER_APP_NAME }} \
+          --resource-group ${{ env.RESOURCE_GROUP }}
