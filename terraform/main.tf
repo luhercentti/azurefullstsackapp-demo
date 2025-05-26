@@ -12,17 +12,12 @@ provider "azurerm" {
   skip_provider_registration = true
 }
 
-# Resource Group
-# resource "azurerm_resource_group" "main" {
-#   name     = var.resource_group_name
-#   location = var.location
-# }
-
-#imported RG
+#Resource Group
 resource "azurerm_resource_group" "main" {
-    name     = "luisangelo.hernandez"
-    location = "East US"
+  name     = var.resource_group_name
+  location = var.location
 }
+
 
 # Container Registry
 resource "azurerm_container_registry" "acr" {
